@@ -4,3 +4,5 @@ export { default as DashBoard } from "./DashBoard";
 export { default as Navbar } from "./Navbar";
 export { default as Sidebar } from "./Sidebar";
 export { default as Users } from "./Users";
+export { default as UserDetail } from "./UserDetail";
+export { default as UnAuthorized } from "./UnAuthorizded";
