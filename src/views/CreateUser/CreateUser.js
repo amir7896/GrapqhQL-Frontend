@@ -4,6 +4,7 @@ import {
   GET_SINGLE_USER,
   CREATE_USER,
   UPDATE_USER,
+  GET_USERS,
 } from "../../graphql/quries";
 import { useQuery, useMutation } from "react-query";
 import client from "../../graphql/apolloSetup";
@@ -13,6 +14,9 @@ import { IoIosArrowBack } from "react-icons/io";
 const CreateUser = () => {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [page, setPage] = useState(1);
+  const [perPage, setPerPage] = useState(10);
+  const [sort, setSort] = useState({ sortBy: "" });
   const [userFormData, setUserFormData] = useState({
     username: "",
     email: "",
@@ -51,6 +55,13 @@ const CreateUser = () => {
       client.mutate({
         mutation: mutation,
         variables: { userID: id, userInput: formData },
+        refetchQueries: [
+          {
+            query: GET_USERS,
+            variables: { page, perPage, sort },
+            awaitRefetchQueries: true,
+          },
+        ],
       }),
     {
       onSuccess: (data) => {

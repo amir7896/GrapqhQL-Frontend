@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useMutation, useQuery } from "react-query";
+import { useMutation, useQuery, useQueryClient } from "react-query";
 import { FaPlus } from "react-icons/fa";
 
 import client from "../../graphql/apolloSetup";
@@ -10,23 +10,34 @@ import { toast } from "react-toastify";
 const Users = () => {
   const [page, setPage] = useState(1);
   const [perPage, setPerPage] = useState(10);
-  const [filter, setFilter] = useState({ username: "" });
+  const [sort, setSort] = useState({ sortBy: "" });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
 
   // Get users
-  const { isLoading, isError, data, isFetching, refetch } = useQuery(
-    ["users", page, perPage, filter.username],
-    async () => {
-      const { data } = await client.query({
-        query: GET_USERS,
-        variables: { page, perPage, filter },
-      });
-      return data.getUsers.data;
-    },
-    {
-      keepPreviousData: false,
-    }
-  );
+  const {
+    isLoading,
+    isError,
+    data,
+    isFetching,
+    refetch: refetchUsers,
+  } = useQuery(["users", page, perPage, sort], async () => {
+    const { data } = await client.query({
+      query: GET_USERS,
+      variables: { page, perPage, sort },
+    });
+    return data.getUsers.data;
+  });
+
+  const refetch = () => {
+    refetchUsers();
+  };
+
+  useEffect(() => {
+    setTimeout(() => {
+      refetchUsers();
+    }, [1000]);
+  }, []);
 
   // Handle delete User
   const deleteUserMutation = useMutation(
@@ -34,12 +45,21 @@ const Users = () => {
       client.mutate({
         mutation: DELETE_USER,
         variables: { userID: userID },
+        refetchQueries: [
+          {
+            query: GET_USERS,
+            variables: { page, perPage, sort },
+            awaitRefetchQueries: true,
+          },
+        ],
       }),
     {
       onSuccess: async (data) => {
         const { deleteUser } = data.data;
         if (deleteUser.success) {
-          refetch();
+          setTimeout(() => {
+            refetch();
+          }, [2000]);
           toast.success(deleteUser.message);
         } else {
           toast.error(deleteUser.message);
@@ -75,11 +95,16 @@ const Users = () => {
     setPage(1);
   };
 
+  const handleSortChange = (event) => {
+    setSort({ sortBy: event.target.value });
+    setPage(1);
+  };
+
   // Handle filter
   const handleFilterChange = (event) => {
     event.preventDefault();
     const value = event.target.value;
-    setFilter({ username: value });
+    setSort({ sortBy: value });
     setPage(1);
   };
 
@@ -99,17 +124,29 @@ const Users = () => {
   return (
     <div className="container mx-auto">
       <h1 className="text-2xl font-bold mb-4">User List</h1>
-
       <div className="mb-4 flex justify-between items-center">
         <div className="flex items-center">
-          <input
-            type="text"
-            value={filter.username}
-            onChange={handleFilterChange}
-            placeholder="Filter by name"
-            className="border border-gray-300 px-3 py-2 rounded mr-2"
-          />
+          <label htmlFor="sortBy" className="mr-2">
+            Sort By :
+          </label>
           <select
+            id="sortBy"
+            value={sort.sortBy}
+            onChange={handleSortChange}
+            className="border border-gray-300 px-3 py-2 rounded mr-2"
+          >
+            <option></option>
+
+            <option value={"username"}>Username</option>
+            <option value={"email"}>Email</option>
+            <option value={"address"}>Address</option>
+          </select>
+
+          <label htmlFor="perPage" className="mr-3">
+            Per Page :
+          </label>
+          <select
+            id="perPage"
             value={perPage}
             onChange={handlePerPageChange}
             className="border border-gray-300 px-3 py-2 rounded mr-2"
@@ -133,7 +170,7 @@ const Users = () => {
       <ul>
         {data &&
           data.map((user) => (
-            <li key={user.id} className="mb-4">
+            <li key={user._id} className="mb-4">
               <div className="bg-white shadow-md rounded-lg overflow-hidden">
                 <div className="p-4">
                   <p className="font-bold">{user.username}</p>
@@ -175,7 +212,7 @@ const Users = () => {
         </button>
         <button
           onClick={handleNextPage}
-          disabled={data.length < perPage}
+          disabled={data?.length < perPage}
           className="px-4 py-2 bg-blue-500 text-white rounded"
         >
           Next Page

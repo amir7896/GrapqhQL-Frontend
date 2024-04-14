@@ -2,8 +2,8 @@ import { gql } from "@apollo/client";
 
 // Get users
 export const GET_USERS = gql`
-  query GetUsers($page: Int, $perPage: Int, $filter: FilterInput) {
-    getUsers(pagination: { page: $page, limit: $perPage }, filter: $filter) {
+  query GetUsers($page: Int, $perPage: Int, $sort: SortInput) {
+    getUsers(pagination: { page: $page, limit: $perPage }, sort: $sort) {
       status
       success
       data {
